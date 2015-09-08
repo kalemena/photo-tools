@@ -9,4 +9,9 @@ Tools used to sort and transcode pictures
 # usage
 
 To rename all pictures based on EXIF metadata, then rename video, then duplicate MJPEG MOV video as x264 AVI:
+
 $ ./photo-processor.py -s <source folder>
+
+# References
+
+* [EXIF tags](http://www.exiv2.org/tags.html)
