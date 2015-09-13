@@ -1,16 +1,38 @@
 # photo-tools
-Tools used to sort and transcode pictures
+
+Tools used to sort, transcode, and rate pictures for paper printing.
+
+This is very easy to adapt script to search or index pictures for use with database.
+
+e.g. Extract from all your pictures, the ones where Face of person X is seen.
 
 # pre-requisits
 * python
 * libexiv2
 * avidemux2
  
-# usage
+# scripts
+
+## photo-processor
+
+Upon photo extraction from camera, files are often named PXXXX.JPG.
+
+The scripts is used to rename file based on EXIF metadata.
 
 To rename all pictures based on EXIF metadata, then rename video, then duplicate MJPEG MOV video as x264 AVI:
 
 $ ./photo-processor.py -s <source folder>
+
+## photo-filter
+
+Assuming that you use any standard tool to rate your pictures (generally from 0 to 5), 
+<br/>then the script will scroll source directory for pictures rated above 0,
+<br/>then copy the files to destination directory.
+
+e.g.
+
+$ ./photo-filter.py -s <source folder> -d <destination folder>
+
 
 # References
 
