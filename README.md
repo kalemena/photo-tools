@@ -31,8 +31,9 @@ Assuming that you use any standard tool to rate your pictures (generally from 0 
 
 e.g.
 
+```js
 $ ./photo-filter.py -s <source folder> -d <destination folder>
-
+```
 
 # References
 
