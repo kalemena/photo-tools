@@ -21,7 +21,9 @@ The scripts is used to rename file based on EXIF metadata.
 
 To rename all pictures based on EXIF metadata, then rename video, then duplicate MJPEG MOV video as x264 AVI:
 
+```js
 $ ./photo-processor.py -s <source folder>
+```
 
 ## photo-filter
 
