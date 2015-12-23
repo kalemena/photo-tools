@@ -37,7 +37,7 @@ def filterPhoto(srcfile, dstfile):
     metadata.read()
     try:
       rating = metadata['Exif.Image.Rating']
-      if rating > 0:
+      if rating and rating.value > 0:
         # print "> Photo is: '%s/%s' = %d" % (directorySrc, os.path.basename(srcfile), rating.value )
         print "> Photo is: '%s/%s' = %d" % (directoryDst, os.path.basename(dstfile), rating.value )
         if not os.path.exists(directoryDst):
