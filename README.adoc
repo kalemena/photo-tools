@@ -1,4 +1,4 @@
-# photo-tools
+= photo-tools
 
 Tools used to sort, transcode, and rate pictures for paper printing.
 
@@ -6,14 +6,15 @@ This is very easy to adapt script to search or index pictures for use with datab
 
 e.g. Extract from all your pictures, the ones where Face of person X is seen.
 
-# pre-requisits
+= pre-requisits
+
 * python
 * libexiv2
 * avidemux2
  
-# scripts
+= scripts
 
-## photo-processor
+== photo-processor
 
 Upon photo extraction from camera, files are often named PXXXX.JPG.
 
@@ -21,11 +22,12 @@ The scripts is used to rename file based on EXIF metadata.
 
 To rename all pictures based on EXIF metadata, then rename video, then duplicate MJPEG MOV video as x264 AVI:
 
-```js
+[source,js]
+----
 $ ./photo-processor.py -s <source folder>
-```
+----
 
-## photo-filter
+== photo-filter
 
 Assuming that you use any standard tool to rate your pictures (generally from 0 to 5), 
 <br/>then the script will scroll source directory for pictures rated above 0,
@@ -33,10 +35,11 @@ Assuming that you use any standard tool to rate your pictures (generally from 0 
 
 e.g.
 
-```js
+[source,js]
+----
 $ ./photo-filter.py -s <source folder> -d <destination folder>
-```
+----
 
-# References
+= References
 
-* [EXIF tags](http://www.exiv2.org/tags.html)
+* http://www.exiv2.org/tags.html[EXIF tags]

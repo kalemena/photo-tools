@@ -39,14 +39,14 @@ def custom_listdir(path):
 
 def processVideo(srcfile):
     froot, ext = os.path.splitext(srcfile)
-    print '> ', srcfile
+    print('> ', srcfile)
     dstfile = '%s%s' % (froot, '.AVI')
-    print '> ', dstfile
+    print('> ', dstfile)
     os.system("avidemux2_cli --nogui --load %s --video-codec x264 --save %s" \
         % (srcfile, dstfile))
 
 def renameRaw(folder, srcfile, dstfile):
-    print '>  ', dstfile, ' <--- ', srcfile
+    print('>  ', dstfile, ' <--- ', srcfile)
     dstfile = os.path.join(folder, dstfile)
     if(os.path.exists(dstfile)):
         froot, ext = os.path.splitext(srcfile)
@@ -100,7 +100,7 @@ def iterateRecursively(srcfolder):
         if not os.path.isdir(srcfolder):
             raise NoFile("'%s' is not a folder" % srcfolder)
 
-        print ">>> Folder: '%s'" % srcfolder
+        print(">>> Folder: '%s'" % srcfolder)
 
         listing = custom_listdir(srcfolder) # os.listdir(srcfolder)
 
@@ -112,20 +112,20 @@ def iterateRecursively(srcfolder):
                 if ext.lower() == '.jpg':
                     try:
                         renamePhoto(os.path.join(srcfolder, infile))
-                    except KeyError, err:
+                    except(KeyError, err):
                         renameFile(os.path.join(srcfolder, infile))
                 elif ext.lower() == '.mov' or ext.lower() == '.avi' or ext.lower() == '.mp4':
                     renameFile(os.path.join(srcfolder, infile))
                 else:
-                    print '>  ', infile, ' <--- UNKNOWN'
+                    print('>  ', infile, ' <--- UNKNOWN')
 
         # recurse the folders
         for infile in listing:
             if os.path.isdir(os.path.join(srcfolder, infile)):
                 iterateRecursively(os.path.join(srcfolder, infile))
 
-    except NoFile, err:
-        print err.msg
+    except(NoFile, err):
+        print(err.msg)
 
 
 if __name__ == '__main__':
@@ -140,6 +140,6 @@ if __name__ == '__main__':
         iterateRecursively(options.source)
     except:
         exc_info = sys.exc_info()
-        print "unhandled exception: %s %s %s" \
-            % (exc_info[0], exc_info[1], exc_info[2])
+        print("unhandled exception: %s %s %s" \
+            % (exc_info[0], exc_info[1], exc_info[2]))
 
