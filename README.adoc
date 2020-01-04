@@ -27,7 +27,7 @@ To rename all pictures based on EXIF metadata, then rename video, then duplicate
 $ ./photo-processor.py -s <source folder>
 ----
 
-== photo-filter
+== photo-filter
 
 Assuming that you use any standard tool to rate your pictures (generally from 0 to 5), 
 <br/>then the script will scroll source directory for pictures rated above 0,
