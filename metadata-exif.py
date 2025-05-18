@@ -2,6 +2,9 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from pillow_heif import register_heif_opener
 import argparse
+import subprocess
+import re
+
 
 def get_date_taken_from_heic(heic_file_path, verbose=False):
     """
@@ -35,13 +38,75 @@ def get_date_taken_from_heic(heic_file_path, verbose=False):
         print(f"Error processing {heic_file_path}: {e}")
         return None
 
+
+def get_date_taken_from_video(video_file_path, verbose=False):
+    """
+    Extracts the 'Date Taken' from MOV/MP4 video file using exiftool.
+
+    Args:
+        video_file_path (str): The path to the video file.
+        verbose (bool): If True, print all metadata.
+
+    Returns:
+        str or None: The date and time string if found, otherwise None.
+    """
+    try:
+        result = subprocess.run(
+            ['exiftool', '-api', 'QuickTimeUTC', video_file_path],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            print(f"Error running exiftool: {result.stderr}")
+            return None
+
+        output = result.stdout
+
+        if verbose:
+            print(output)
+
+        date_tags = [
+            'Media Create Date',
+            'Track Create Date',
+            'Create Date',
+            'Date/Time Original',
+        ]
+
+        for line in output.split('\n'):
+            for tag in date_tags:
+                match = re.match(rf'^{re.escape(tag)}\s*:\s*(.+)$', line)
+                if match:
+                    return match.group(1).strip()
+
+        return None
+    except FileNotFoundError:
+        print("exiftool not found. Install with: brew install exiftool")
+        return None
+    except Exception as e:
+        print(f"Error processing {video_file_path}: {e}")
+        return None
+
+
+def get_date_taken(file_path, verbose=False):
+    """Extract date taken from image or video file."""
+    ext = file_path.lower().split('.')[-1]
+
+    if ext in ('heic', 'heif', 'heics'):
+        return get_date_taken_from_heic(file_path, verbose)
+    elif ext in ('mov', 'mp4', 'm4v', 'avi'):
+        return get_date_taken_from_video(file_path, verbose)
+    else:
+        return get_date_taken_from_heic(file_path, verbose)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract EXIF DateTime from HEIC file")
-    parser.add_argument("--file", required=True, help="Path to HEIC file")
+    parser = argparse.ArgumentParser(description="Extract EXIF DateTime from media file")
+    parser.add_argument("--file", required=True, help="Path to media file")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print all EXIF tags")
     args = parser.parse_args()
 
-    date_taken = get_date_taken_from_heic(args.file, args.verbose)
+    date_taken = get_date_taken(args.file, args.verbose)
 
     if date_taken:
         print(f"Date Taken: {date_taken}")
