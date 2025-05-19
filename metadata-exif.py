@@ -4,6 +4,7 @@ from pillow_heif import register_heif_opener
 import argparse
 import subprocess
 import re
+from datetime import datetime
 
 
 def get_date_taken_from_heic(heic_file_path, verbose=False):
@@ -89,15 +90,37 @@ def get_date_taken_from_video(video_file_path, verbose=False):
 
 
 def get_date_taken(file_path, verbose=False):
-    """Extract date taken from image or video file."""
+    """Extract date taken from image or video file, returns ISO format string."""
     ext = file_path.lower().split('.')[-1]
 
     if ext in ('heic', 'heif', 'heics'):
-        return get_date_taken_from_heic(file_path, verbose)
+        date_str = get_date_taken_from_heic(file_path, verbose)
     elif ext in ('mov', 'mp4', 'm4v', 'avi'):
-        return get_date_taken_from_video(file_path, verbose)
+        date_str = get_date_taken_from_video(file_path, verbose)
     else:
-        return get_date_taken_from_heic(file_path, verbose)
+        date_str = get_date_taken_from_heic(file_path, verbose)
+
+    if not date_str:
+        return None
+
+    date_str = date_str.strip()
+
+    date_str = re.sub(r'[+-]\d{2}:\d{2}$', '', date_str)
+
+    formats = [
+        '%Y:%m:%d %H:%M:%S',
+        '%Y-%m-%d %H:%M:%S',
+        '%Y/%m/%d %H:%M:%S',
+    ]
+
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.isoformat()
+        except ValueError:
+            continue
+
+    return date_str
 
 
 if __name__ == "__main__":
