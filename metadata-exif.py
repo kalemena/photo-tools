@@ -5,6 +5,7 @@ import argparse
 import subprocess
 import re
 from datetime import datetime
+from pathlib import Path
 
 
 def get_date_taken_from_heic(heic_file_path, verbose=False):
@@ -91,6 +92,7 @@ def get_date_taken_from_video(video_file_path, verbose=False):
 
 def get_date_taken(file_path, verbose=False):
     """Extract date taken from image or video file, returns ISO format string."""
+    file_path = str(file_path)
     ext = file_path.lower().split('.')[-1]
 
     if ext in ('heic', 'heif', 'heics'):
@@ -123,15 +125,43 @@ def get_date_taken(file_path, verbose=False):
     return date_str
 
 
+def get_media_files(folder_path):
+    """Get list of media files in folder."""
+    import os
+    media_extensions = {
+        '.jpg', '.jpeg', '.png', '.heic', '.heif', '.raw', '.dng', '.tiff', '.tif',
+        '.mov', '.mp4', '.m4v', '.avi'
+    }
+    folder = Path(folder_path)
+    files = []
+    for f in os.listdir(folder):
+        if Path(f).suffix.lower() in media_extensions:
+            files.append(folder / f)
+    return sorted(files)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract EXIF DateTime from media file")
-    parser.add_argument("--file", required=True, help="Path to media file")
+    parser = argparse.ArgumentParser(description="Extract EXIF DateTime from media file(s)")
+    parser.add_argument("--file", help="Path to media file")
+    parser.add_argument("--folder", help="Path to folder containing media files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print all EXIF tags")
+    parser.add_argument("--limit", "-l", type=int, help="Limit number of files to process")
     args = parser.parse_args()
 
-    date_taken = get_date_taken(args.file, args.verbose)
+    if not args.file and not args.folder:
+        parser.error("Either --file or --folder must be specified")
 
-    if date_taken:
-        print(f"Date Taken: {date_taken}")
+    files = []
+    if args.file:
+        files = [Path(args.file)]
     else:
-        print("Date Taken not found.")
+        files = get_media_files(args.folder)
+        if args.limit:
+            files = files[:args.limit]
+
+    for file_path in files:
+        date_taken = get_date_taken(file_path, args.verbose)
+        if date_taken:
+            print(f"{file_path.name}: {date_taken}")
+        else:
+            print(f"{file_path.name}: Date Taken not found.")
