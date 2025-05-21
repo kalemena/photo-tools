@@ -95,9 +95,7 @@ def get_date_taken(file_path, verbose=False):
     file_path = str(file_path)
     ext = file_path.lower().split('.')[-1]
 
-    if ext in ('heic', 'heif', 'heics'):
-        date_str = get_date_taken_from_heic(file_path, verbose)
-    elif ext in ('mov', 'mp4', 'm4v', 'avi'):
+    if ext in ('mov', 'mp4', 'm4v', 'avi'):
         date_str = get_date_taken_from_video(file_path, verbose)
     else:
         date_str = get_date_taken_from_heic(file_path, verbose)
