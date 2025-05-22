@@ -23,7 +23,15 @@ process:
 	@echo "+++ Running photo-processor.py +++"
 	$(ENV_DIR)/bin/python photo-processor.py
 
-# Docker-ized image
+exiftool:
+	@echo "+++ Checking exiftool +++"
+	@which exiftool > /dev/null 2>&1 || (echo "exiftool not found. Install with: brew install exiftool" && exit 1)
+	@echo "exiftool is installed"
+
+
+metadata:
+	@echo "+++ Running metadata-exif.py +++"
+	$(ENV_DIR)/bin/python metadata-exif.py
 
 build:
 	@echo "+++ Building docker image +++"
