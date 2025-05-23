@@ -4,6 +4,7 @@ from pillow_heif import register_heif_opener
 import argparse
 import subprocess
 import re
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -138,12 +139,52 @@ def get_media_files(folder_path):
     return sorted(files)
 
 
+def get_creation_date(file_path):
+    """Get file creation date as ISO format string."""
+    try:
+        stat = os.stat(file_path)
+        if hasattr(stat, 'st_birthtime'):
+            dt = datetime.fromtimestamp(stat.st_birthtime)
+        else:
+            dt = datetime.fromtimestamp(stat.st_ctime)
+        return dt.isoformat()
+    except Exception as e:
+        print(f"Error getting creation date for {file_path}: {e}")
+        return None
+
+
+def rename_file(file_path, date_str, dry_run=False):
+    """Rename file using date string (format: YYYY-MM-DD_HH-MM-SS)."""
+    try:
+        dt = datetime.fromisoformat(date_str)
+        new_name = dt.strftime('%Y-%m-%d_%H-%M-%S') + Path(file_path).suffix.lower()
+        new_path = Path(file_path).parent / new_name
+
+        if new_path.exists():
+            print(f"Skipping {file_path.name}: {new_name} already exists")
+            return False
+
+        if dry_run:
+            print(f"Would rename: {file_path.name} -> {new_name}")
+        else:
+            Path(file_path).rename(new_path)
+            print(f"Renamed: {file_path.name} -> {new_name}")
+        return True
+    except Exception as e:
+        print(f"Error renaming {file_path}: {e}")
+        return False
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract EXIF DateTime from media file(s)")
     parser.add_argument("--file", help="Path to media file")
     parser.add_argument("--folder", help="Path to folder containing media files")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print all EXIF tags")
     parser.add_argument("--limit", "-l", type=int, help="Limit number of files to process")
+    parser.add_argument("--rename", action="store_true", help="Rename files using EXIF date")
+    parser.add_argument("--fallback-creation", action="store_true",
+                        help="Use file creation date if EXIF date not available")
+    parser.add_argument("--dry-run", action="store_true", help="Preview renames without executing")
     args = parser.parse_args()
 
     if not args.file and not args.folder:
@@ -159,7 +200,15 @@ if __name__ == "__main__":
 
     for file_path in files:
         date_taken = get_date_taken(file_path, args.verbose)
+
+        if not date_taken and args.fallback_creation:
+            date_taken = get_creation_date(file_path)
+            if date_taken and args.verbose:
+                print(f"{file_path.name}: Using creation date")
+
         if date_taken:
             print(f"{file_path.name}: {date_taken}")
+            if args.rename:
+                rename_file(file_path, date_taken, dry_run=args.dry_run)
         else:
             print(f"{file_path.name}: Date Taken not found.")
