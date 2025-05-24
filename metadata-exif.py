@@ -154,15 +154,31 @@ def get_creation_date(file_path):
 
 
 def rename_file(file_path, date_str, dry_run=False):
-    """Rename file using date string (format: YYYY-MM-DD_HH-MM-SS)."""
+    """Rename file using date string (format: YYYYMMDD_HHMMSS), add suffix A/B/C if exists."""
     try:
         dt = datetime.fromisoformat(date_str)
-        new_name = dt.strftime('%Y-%m-%d_%H-%M-%S') + Path(file_path).suffix.lower()
-        new_path = Path(file_path).parent / new_name
+        base_name = dt.strftime('%Y%m%d_%H%M%S')
+        ext = Path(file_path).suffix.lower()
+        parent = Path(file_path).parent
 
-        if new_path.exists():
-            print(f"Skipping {file_path.name}: {new_name} already exists")
-            return False
+        # Find unique filename with suffix if needed
+        suffix_letter = 'A'
+        current_suffix = ''
+        while True:
+            if current_suffix:
+                new_name = f"{base_name}_{current_suffix}{ext}"
+            else:
+                new_name = f"{base_name}{ext}"
+            new_path = parent / new_name
+
+            if not new_path.exists():
+                break
+            current_suffix = suffix_letter
+            suffix_letter = chr(ord(suffix_letter) + 1)
+            # Prevent infinite loop if too many duplicates
+            if ord(suffix_letter) > ord('Z'):
+                print(f"Error: Too many duplicates for {base_name}{ext}")
+                return False
 
         if dry_run:
             print(f"Would rename: {file_path.name} -> {new_name}")
