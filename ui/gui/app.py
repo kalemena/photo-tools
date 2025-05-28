@@ -79,6 +79,10 @@ class PhotoToolsApp(ctk.CTk):
         self.preview_panel = PreviewPanePanel(self)
         self.preview_panel.grid(row=1, column=2, sticky="nsew", padx=(2, 5), pady=5)
 
+        # Cross-reference panels for communication
+        self.thumbnail_panel.master_app = self
+        self.preview_panel.master_app = self
+
     def _configure_grid(self):
         """Configure grid weights for resizable panels."""
         self.grid_rowconfigure(1, weight=1)
