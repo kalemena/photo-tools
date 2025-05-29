@@ -9,6 +9,13 @@ from pathlib import Path
 from PIL import Image, ImageTk
 import os
 
+# Register HEIC/HEIF support with Pillow
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pass
+
 
 class PreviewPanePanel(ctk.CTkFrame):
     """Right panel containing the photo preview and metadata."""
