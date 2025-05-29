@@ -9,6 +9,13 @@ from typing import Optional, Tuple
 from PIL import Image
 import os
 
+# Register HEIC/HEIF support with Pillow
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pass
+
 
 class ThumbnailGenerator:
     """Generates and caches photo thumbnails."""
