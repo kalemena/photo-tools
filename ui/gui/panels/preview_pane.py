@@ -6,7 +6,7 @@ Displays a large preview of the selected photo with metadata and controls.
 
 import customtkinter as ctk
 from pathlib import Path
-from PIL import Image, ImageTk
+from PIL import Image
 import os
 
 # Register HEIC/HEIF support with Pillow
@@ -26,8 +26,11 @@ class PreviewPanePanel(ctk.CTkFrame):
         self.current_photo = None
         self.photo_list = []
         self.current_index = -1
-        self.preview_image = None  # Keep reference to prevent garbage collection
+        self.preview_image = None  # CTkImage reference
+        self.original_image = None  # Keep original PIL image for resizing
         self._create_widgets()
+        # Bind resize event
+        self.bind("<Configure>", self._on_resize)
 
     def _create_widgets(self):
         """Create the preview pane widgets."""
@@ -122,39 +125,28 @@ class PreviewPanePanel(ctk.CTkFrame):
     def _display_photo(self, photo_path):
         """Display the photo (runs in UI thread)."""
         try:
-            # Load and resize image for preview
-            img = Image.open(photo_path)
+            # Load image
+            self.original_image = Image.open(photo_path)
 
             # Handle EXIF orientation
             try:
                 from PIL import ImageOps
-                img = ImageOps.exif_transpose(img)
+                self.original_image = ImageOps.exif_transpose(self.original_image)
             except Exception:
                 pass
 
-            # Calculate resize dimensions (fit within ~600x400)
-            max_width = 600
-            max_height = 400
-            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-
-            # Convert to PhotoImage
-            self.preview_image = ImageTk.PhotoImage(img)
-
-            # Update label
-            self.preview_label.configure(image=self.preview_image, text="")
+            # Store original dimensions
+            self.orig_width, self.orig_height = self.original_image.size
 
             # Update metadata display
             filename = Path(photo_path).name
             file_size = os.path.getsize(photo_path)
             size_kb = file_size / 1024
 
-            # Get image dimensions
-            width, height = img.size
-
             self.metadata_label.configure(
                 text=f"File: {filename}\n"
                      f"Size: {size_kb:.1f} KB\n"
-                     f"Dimensions: {width} x {height}\n"
+                     f"Dimensions: {self.orig_width} x {self.orig_height}\n"
                      f"\n(EXIF data will be displayed in Phase 3)"
             )
 
@@ -162,12 +154,48 @@ class PreviewPanePanel(ctk.CTkFrame):
             if self.photo_list:
                 self.counter_label.configure(text=f"{self.current_index + 1} / {len(self.photo_list)}")
 
+            # Resize and display
+            self._resize_and_display()
+
         except Exception as e:
             self.preview_label.configure(
                 image=None,
                 text=f"Error loading preview:\n{str(e)}",
                 text_color=("red", "red")
             )
+
+    def _resize_and_display(self):
+        """Resize image to fit preview area and display it."""
+        if self.original_image is None:
+            return
+
+        # Get available size from preview_scroll
+        avail_width = self.preview_scroll.winfo_width() - 40  # padding
+        avail_height = self.preview_scroll.winfo_height() - 40
+
+        if avail_width <= 1 or avail_height <= 1:
+            # Panel not yet rendered, use defaults
+            avail_width = 500
+            avail_height = 400
+
+        # Calculate resize dimensions (maintain aspect ratio)
+        img = self.original_image.copy()
+        img.thumbnail((avail_width, avail_height), Image.Resampling.LANCZOS)
+
+        # Create CTkImage for proper DPI scaling
+        self.preview_image = ctk.CTkImage(
+            light_image=img,
+            dark_image=img,
+            size=(img.width, img.height)
+        )
+
+        # Update label
+        self.preview_label.configure(image=self.preview_image, text="")
+
+    def _on_resize(self, event):
+        """Handle panel resize to adapt preview image."""
+        if self.original_image is not None:
+            self._resize_and_display()
 
     def _update_nav_buttons(self):
         """Update navigation button states."""
