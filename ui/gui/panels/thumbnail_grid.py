@@ -8,7 +8,7 @@ import customtkinter as ctk
 import os
 import threading
 from pathlib import Path
-from PIL import Image, ImageTk
+from PIL import Image
 from utils.thumbnail_generator import ThumbnailGenerator
 
 
@@ -170,16 +170,20 @@ class ThumbnailGridPanel(ctk.CTkFrame):
 
         if thumb_path and os.path.exists(thumb_path):
             try:
-                # Load and display image
+                # Load and display image using CTkImage for DPI scaling
                 img = Image.open(thumb_path)
-                photo_img = ImageTk.PhotoImage(img)
+                ctk_img = ctk.CTkImage(
+                    light_image=img,
+                    dark_image=img,
+                    size=(img.width, img.height)
+                )
 
                 # Keep reference to prevent garbage collection
-                self.thumbnail_images[photo_path] = photo_img
+                self.thumbnail_images[photo_path] = ctk_img
 
                 # Image label
                 img_label = ctk.CTkLabel(
-                    thumb_frame, image=photo_img, text=""
+                    thumb_frame, image=ctk_img, text=""
                 )
                 img_label.pack(pady=(10, 5))
                 img_label.bind("<Button-1>", lambda e, p=photo_path: self._on_thumbnail_click(p, thumb_frame))
