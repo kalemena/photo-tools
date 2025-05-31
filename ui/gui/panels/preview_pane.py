@@ -29,8 +29,6 @@ class PreviewPanePanel(ctk.CTkFrame):
         self.preview_image = None  # CTkImage reference
         self.original_image = None  # Keep original PIL image for resizing
         self._create_widgets()
-        # Bind resize event
-        self.bind("<Configure>", self._on_resize)
 
     def _create_widgets(self):
         """Create the preview pane widgets."""
@@ -43,6 +41,9 @@ class PreviewPanePanel(ctk.CTkFrame):
         # Preview area with scrollable frame
         self.preview_scroll = ctk.CTkScrollableFrame(self, fg_color=("gray90", "gray20"), label_text="")
         self.preview_scroll.pack(fill="both", expand=True, padx=10, pady=(5, 10))
+
+        # Bind to scroll frame resize
+        self.preview_scroll.bind("<Configure>", self._on_scroll_resize)
 
         # Image label (inside scrollable frame)
         self.preview_label = ctk.CTkLabel(
@@ -154,8 +155,8 @@ class PreviewPanePanel(ctk.CTkFrame):
             if self.photo_list:
                 self.counter_label.configure(text=f"{self.current_index + 1} / {len(self.photo_list)}")
 
-            # Resize and display
-            self._resize_and_display()
+            # Schedule resize after UI is fully rendered
+            self.after(100, self._resize_and_display)
 
         except Exception as e:
             self.preview_label.configure(
@@ -169,20 +170,17 @@ class PreviewPanePanel(ctk.CTkFrame):
         if self.original_image is None:
             return
 
-        # Get available size from preview_scroll
-        avail_width = self.preview_scroll.winfo_width() - 40  # padding
-        avail_height = self.preview_scroll.winfo_height() - 40
+        # Calculate resize dimensions based on original image aspect ratio
+        # Use a reasonable default size that fits well in the panel
+        # The CTkImage will handle DPI scaling automatically
+        max_width = 500
+        max_height = 400
 
-        if avail_width <= 1 or avail_height <= 1:
-            # Panel not yet rendered, use defaults
-            avail_width = 500
-            avail_height = 400
-
-        # Calculate resize dimensions (maintain aspect ratio)
         img = self.original_image.copy()
-        img.thumbnail((avail_width, avail_height), Image.Resampling.LANCZOS)
+        img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
 
         # Create CTkImage for proper DPI scaling
+        # size parameter tells CTkImage the desired display size (it handles DPI)
         self.preview_image = ctk.CTkImage(
             light_image=img,
             dark_image=img,
@@ -192,8 +190,8 @@ class PreviewPanePanel(ctk.CTkFrame):
         # Update label
         self.preview_label.configure(image=self.preview_image, text="")
 
-    def _on_resize(self, event):
-        """Handle panel resize to adapt preview image."""
+    def _on_scroll_resize(self, event):
+        """Handle scroll frame resize to adapt preview image."""
         if self.original_image is not None:
             self._resize_and_display()
 
