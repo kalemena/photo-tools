@@ -5,9 +5,13 @@ Implements a 3-panel layout with toolbar.
 """
 
 import customtkinter as ctk
+from pathlib import Path
 from gui.panels.folder_tree import FolderTreePanel
 from gui.panels.thumbnail_grid import ThumbnailGridPanel
 from gui.panels.preview_pane import PreviewPanePanel
+from gui.dialogs.exif_editor import EXIFEditorDialog
+from gui.dialogs.sort_dialog import SortDialog
+from gui.dialogs.move_dialog import MoveDialog
 
 
 class PhotoToolsApp(ctk.CTk):
@@ -92,19 +96,48 @@ class PhotoToolsApp(ctk.CTk):
 
     def _on_sort(self):
         """Handle Sort button click."""
-        print("Sort action triggered")
+        if hasattr(self.thumbnail_panel, 'current_folder') and self.thumbnail_panel.current_folder:
+            dialog = SortDialog(self, self.thumbnail_panel.current_folder)
+            dialog.focus()
+        else:
+            self._show_info("Please select a folder first.")
 
     def _on_deduplicate(self):
         """Handle Deduplicate button click."""
-        print("Deduplicate action triggered")
+        if hasattr(self.thumbnail_panel, 'photo_paths') and self.thumbnail_panel.photo_paths:
+            # TODO: Implement deduplication in Phase 4
+            self._show_info("Deduplication will be implemented in Phase 4.")
+        else:
+            self._show_info("No photos to deduplicate. Please select a folder first.")
 
     def _on_edit_exif(self):
         """Handle Edit EXIF button click."""
-        print("Edit EXIF action triggered")
+        if hasattr(self.thumbnail_panel, 'selected_photos') and self.thumbnail_panel.selected_photos:
+            selected = list(self.thumbnail_panel.selected_photos)
+            dialog = EXIFEditorDialog(self, selected)
+            dialog.focus()
+        elif hasattr(self.preview_panel, 'current_photo') and self.preview_panel.current_photo:
+            dialog = EXIFEditorDialog(self, [self.preview_panel.current_photo])
+            dialog.focus()
+        else:
+            self._show_info("Please select a photo first.")
 
     def _on_move_copy(self):
         """Handle Move/Copy button click."""
-        print("Move/Copy action triggered")
+        if hasattr(self.thumbnail_panel, 'selected_photos') and self.thumbnail_panel.selected_photos:
+            selected = list(self.thumbnail_panel.selected_photos)
+            dialog = MoveDialog(self, selected)
+            dialog.focus()
+        elif hasattr(self.preview_panel, 'current_photo') and self.preview_panel.current_photo:
+            dialog = MoveDialog(self, [self.preview_panel.current_photo])
+            dialog.focus()
+        else:
+            self._show_info("Please select a photo first.")
+
+    def _show_info(self, message):
+        """Show info dialog."""
+        dialog = ctk.CTkInputDialog(text=message, title="Info")
+        dialog.destroy()  # Just a simple message box equivalent
 
     def _toggle_appearance(self):
         """Toggle between light and dark mode."""
