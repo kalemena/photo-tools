@@ -16,6 +16,8 @@ try:
 except ImportError:
     pass
 
+from core.exif_handler import EXIFHandler
+
 
 class PreviewPanePanel(ctk.CTkFrame):
     """Right panel containing the photo preview and metadata."""
@@ -28,6 +30,7 @@ class PreviewPanePanel(ctk.CTkFrame):
         self.current_index = -1
         self.preview_image = None  # CTkImage reference
         self.original_image = None  # Keep original PIL image for resizing
+        self.exif_handler = EXIFHandler()
         self._create_widgets()
 
     def _create_widgets(self):
@@ -144,12 +147,27 @@ class PreviewPanePanel(ctk.CTkFrame):
             file_size = os.path.getsize(photo_path)
             size_kb = file_size / 1024
 
-            self.metadata_label.configure(
-                text=f"File: {filename}\n"
-                     f"Size: {size_kb:.1f} KB\n"
-                     f"Dimensions: {self.orig_width} x {self.orig_height}\n"
-                     f"\n(EXIF data will be displayed in Phase 3)"
-            )
+            # Get EXIF data
+            rating = self.exif_handler.get_rating(photo_path)
+            date_taken = self.exif_handler.get_date_taken(photo_path)
+            camera_info = self.exif_handler.get_camera_info(photo_path)
+
+            # Build metadata text
+            meta_text = f"File: {filename}\n"
+            meta_text += f"Size: {size_kb:.1f} KB\n"
+            meta_text += f"Dimensions: {self.orig_width} x {self.orig_height}\n"
+
+            if date_taken:
+                meta_text += f"Date Taken: {date_taken}\n"
+            if camera_info['make'] != 'Unknown':
+                meta_text += f"Camera: {camera_info['make']} {camera_info['model']}\n"
+            if camera_info['lens'] != 'Unknown':
+                meta_text += f"Lens: {camera_info['lens']}\n"
+
+            self.metadata_label.configure(text=meta_text)
+
+            # Update star rating display
+            self._update_star_display(rating)
 
             # Update navigation counter
             if self.photo_list:
@@ -208,9 +226,16 @@ class PreviewPanePanel(ctk.CTkFrame):
         )
 
     def _set_rating(self, rating):
-        """Set star rating (placeholder for Phase 3)."""
-        print(f"Set rating to {rating} stars")
-        # Update star display
+        """Set star rating."""
+        if self.current_photo:
+            if self.exif_handler.write_rating(self.current_photo, rating):
+                self._update_star_display(rating)
+                print(f"Rating set to {rating} stars for {Path(self.current_photo).name}")
+            else:
+                print(f"Failed to write rating for {self.current_photo}")
+
+    def _update_star_display(self, rating):
+        """Update star button display."""
         for i, btn in enumerate(self.star_buttons):
             if i < rating:
                 btn.configure(text="★")
