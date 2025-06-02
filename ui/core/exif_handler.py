@@ -50,39 +50,48 @@ class EXIFHandler:
             return {}
 
     def get_rating(self, photo_path: str) -> int:
-        """Get star rating (0-5) from photo. Returns -1 if not set."""
+        """Get star rating (0-5) from photo. Returns 0 if not set or error."""
         if not self.supported:
-            return -1
+            return 0
 
         try:
             import pyexiv2
             img = pyexiv2.Image(photo_path)
-            xmp_data = img.read_xmp()
+
+            # Try to read XMP data (may fail for HEIC)
+            rating = 0
+            try:
+                xmp_data = img.read_xmp()
+
+                # Check XMP Rating (0-5 stars)
+                rating_str = xmp_data.get('Xmp.xmp.Rating', '')
+                if rating_str:
+                    try:
+                        rating = int(float(rating_str))
+                        rating = max(0, min(5, rating))  # Clamp to 0-5
+                    except ValueError:
+                        pass
+            except Exception as xmp_error:
+                # XMP reading failed (common for HEIC), try EXIF only
+                pass
+
             img.close()
 
-            # Check XMP Rating (0-5 stars)
-            rating_str = xmp_data.get('Xmp.xmp.Rating', '')
-            if rating_str:
-                try:
-                    rating = int(float(rating_str))
-                    return max(0, min(5, rating))  # Clamp to 0-5
-                except ValueError:
-                    pass
+            # If no XMP rating found, check EXIF ImageRating
+            if rating == 0:
+                exif_data = self.read_exif(photo_path)
+                rating_str = exif_data.get('Exif.Image.Rating', '')
+                if rating_str:
+                    try:
+                        rating = int(float(rating_str))
+                        rating = max(0, min(5, rating))
+                    except ValueError:
+                        pass
 
-            # Check EXIF ImageRating
-            exif_data = self.read_exif(photo_path)
-            rating_str = exif_data.get('Exif.Image.Rating', '')
-            if rating_str:
-                try:
-                    rating = int(float(rating_str))
-                    return max(0, min(5, rating))
-                except ValueError:
-                    pass
-
-            return 0  # Default: no rating
+            return rating
         except Exception as e:
             print(f"Error reading rating from {photo_path}: {e}")
-            return -1
+            return 0
 
     def write_rating(self, photo_path: str, rating: int) -> bool:
         """Write star rating (0-5) to photo EXIF data."""
@@ -90,19 +99,52 @@ class EXIFHandler:
             return False
 
         rating = max(0, min(5, rating))  # Clamp to 0-5
+        ext = Path(photo_path).suffix.lower()
 
+        # For HEIC/HEIF files, use exiftool (pyexiv2 doesn't support writing to BMFF)
+        if ext in ['.heic', '.heif']:
+            return self._write_with_exiftool(photo_path, rating)
+
+        # For other formats, use pyexiv2
         try:
             import pyexiv2
             img = pyexiv2.Image(photo_path)
 
-            # Write to both XMP and EXIF for compatibility
-            img.modify_xmp({'Xmp.xmp.Rating': str(rating)})
+            # Write EXIF rating
             img.modify_exif({'Exif.Image.Rating': str(rating)})
+
+            # Write XMP rating
+            try:
+                img.modify_xmp({'Xmp.xmp.Rating': str(rating)})
+            except Exception as xmp_error:
+                print(f"Note: Could not write XMP rating: {xmp_error}")
 
             img.close()
             return True
         except Exception as e:
             print(f"Error writing rating to {photo_path}: {e}")
+            return False
+
+    def _write_with_exiftool(self, photo_path: str, rating: int) -> bool:
+        """Use exiftool to write rating for formats not supported by pyexiv2 (e.g., HEIC)."""
+        try:
+            import subprocess
+            # Write both EXIF and XMP rating
+            result = subprocess.run(
+                ['exiftool', '-overwrite_original',
+                 f'-Exif:ImageRating={rating}',
+                 f'-XMP:Rating={rating}',
+                 photo_path],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                print(f"exiftool error: {result.stderr}")
+                return False
+            return True
+        except Exception as e:
+            print(f"exiftool failed: {e}")
             return False
 
     def get_date_taken(self, photo_path: str) -> Optional[str]:
