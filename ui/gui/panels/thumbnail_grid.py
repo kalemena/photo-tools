@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 from PIL import Image
 from utils.thumbnail_generator import ThumbnailGenerator
+from core.exif_handler import EXIFHandler
 
 
 class ThumbnailGridPanel(ctk.CTkFrame):
@@ -22,9 +23,12 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         self.master_app = master
         self.current_folder = None
         self.photo_paths = []
+        self.all_photo_paths = []  # Keep all photos before filtering
         self.selected_photos = set()
         self.thumbnail_generator = ThumbnailGenerator()
+        self.exif_handler = EXIFHandler()
         self.thumbnail_images = {}  # Keep references to prevent garbage collection
+        self.current_filter = {}  # Current filter criteria
         self._create_widgets()
 
     def _create_widgets(self):
@@ -83,8 +87,10 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         self.current_folder = folder_path
         self.folder_label.configure(text=Path(folder_path).name)
         self.photo_paths = []
+        self.all_photo_paths = []
         self.selected_photos.clear()
         self.thumbnail_images.clear()
+        self.current_filter = {}
 
         # Clear existing thumbnails
         for widget in self.scroll_frame.winfo_children():
@@ -110,7 +116,8 @@ class ThumbnailGridPanel(ctk.CTkFrame):
                 self.selection_label.configure(text="")
                 return
 
-            self.photo_paths = [os.path.join(folder_path, f) for f in photo_files]
+            self.all_photo_paths = [os.path.join(folder_path, f) for f in photo_files]
+            self.photo_paths = self.all_photo_paths.copy()
             self.count_label.configure(text=f"{len(photo_files)} photos")
             self.selection_label.configure(text="")
 
@@ -261,3 +268,54 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         # Just reload the grid with updated selection
         if self.photo_paths:
             self._build_grid()
+
+    def apply_filter(self, filters):
+        """Apply metadata filter to photos."""
+        self.current_filter = filters
+        
+        if not filters:
+            # Clear filter - show all photos
+            self.photo_paths = self.all_photo_paths.copy()
+            self.folder_label.configure(text=Path(self.current_folder).name)
+        else:
+            # Apply filter
+            filtered = []
+            for photo_path in self.all_photo_paths:
+                if self._matches_filter(photo_path, filters):
+                    filtered.append(photo_path)
+            
+            self.photo_paths = filtered
+            
+            # Update label to show filtered count
+            self.folder_label.configure(text=f"{Path(self.current_folder).name} ({len(filtered)}/{len(self.all_photo_paths)})")
+        
+        self.count_label.configure(text=f"{len(self.photo_paths)} photos")
+        
+        # Rebuild grid
+        if self.photo_paths:
+            self._build_grid()
+
+    def _matches_filter(self, photo_path, filters):
+        """Check if photo matches filter criteria."""
+        try:
+            # Check rating
+            if filters.get('rating_min', 0) > 0:
+                rating = self.exif_handler.get_rating(photo_path)
+                if rating < filters['rating_min']:
+                    return False
+            
+            # Check camera make
+            if filters.get('make'):
+                camera = self.exif_handler.get_camera_info(photo_path)
+                if camera.get('make') != filters['make']:
+                    return False
+            
+            # Check camera model
+            if filters.get('model'):
+                camera = self.exif_handler.get_camera_info(photo_path)
+                if camera.get('model') != filters['model']:
+                    return False
+            
+            return True
+        except:
+            return False
