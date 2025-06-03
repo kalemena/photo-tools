@@ -12,6 +12,8 @@ from gui.panels.preview_pane import PreviewPanePanel
 from gui.dialogs.exif_editor import EXIFEditorDialog
 from gui.dialogs.sort_dialog import SortDialog
 from gui.dialogs.move_dialog import MoveDialog
+from gui.dialogs.deduplication_dialog import DeduplicationDialog
+from gui.dialogs.metadata_filter_dialog import MetadataFilterDialog
 
 
 class PhotoToolsApp(ctk.CTk):
@@ -53,6 +55,11 @@ class PhotoToolsApp(ctk.CTk):
             self.toolbar, text="Move/Copy", width=100, command=self._on_move_copy
         )
         btn_move.pack(side="left", padx=5, pady=10)
+
+        btn_filter = ctk.CTkButton(
+            self.toolbar, text="Filter", width=100, command=self._on_filter
+        )
+        btn_filter.pack(side="left", padx=5, pady=10)
 
         # Spacer
         spacer = ctk.CTkLabel(self.toolbar, text="")
@@ -104,11 +111,15 @@ class PhotoToolsApp(ctk.CTk):
 
     def _on_deduplicate(self):
         """Handle Deduplicate button click."""
-        if hasattr(self.thumbnail_panel, 'photo_paths') and self.thumbnail_panel.photo_paths:
-            # TODO: Implement deduplication in Phase 4
-            self._show_info("Deduplication will be implemented in Phase 4.")
+        folder = None
+        if hasattr(self.thumbnail_panel, 'current_folder') and self.thumbnail_panel.current_folder:
+            folder = self.thumbnail_panel.current_folder
+        
+        if folder:
+            dialog = DeduplicationDialog(self, [folder])
+            dialog.focus()
         else:
-            self._show_info("No photos to deduplicate. Please select a folder first.")
+            self._show_info("Please select a folder first.")
 
     def _on_edit_exif(self):
         """Handle Edit EXIF button click."""
@@ -133,6 +144,19 @@ class PhotoToolsApp(ctk.CTk):
             dialog.focus()
         else:
             self._show_info("Please select a photo first.")
+
+    def _on_filter(self):
+        """Handle Filter button click."""
+        if hasattr(self.thumbnail_panel, 'photo_paths') and self.thumbnail_panel.photo_paths:
+            dialog = MetadataFilterDialog(self, self.thumbnail_panel.photo_paths)
+            dialog.focus()
+        else:
+            self._show_info("No photos to filter. Please select a folder first.")
+
+    def apply_metadata_filter(self, filters):
+        """Apply metadata filter to thumbnail grid."""
+        if hasattr(self.thumbnail_panel, 'apply_filter'):
+            self.thumbnail_panel.apply_filter(filters)
 
     def _show_info(self, message):
         """Show info dialog."""
