@@ -14,6 +14,7 @@ from gui.dialogs.sort_dialog import SortDialog
 from gui.dialogs.move_dialog import MoveDialog
 from gui.dialogs.deduplication_dialog import DeduplicationDialog
 from gui.dialogs.metadata_filter_dialog import MetadataFilterDialog
+from gui.widgets.status_bar import StatusBar, show_toast
 
 
 class PhotoToolsApp(ctk.CTk):
@@ -29,6 +30,7 @@ class PhotoToolsApp(ctk.CTk):
         self._create_toolbar()
         self._create_panels()
         self._configure_grid()
+        self._create_status_bar()
 
     def _create_toolbar(self):
         """Create the top toolbar with action buttons."""
@@ -60,6 +62,12 @@ class PhotoToolsApp(ctk.CTk):
             self.toolbar, text="Filter", width=100, command=self._on_filter
         )
         btn_filter.pack(side="left", padx=5, pady=10)
+
+        # Cache info button
+        self.cache_btn = ctk.CTkButton(
+            self.toolbar, text="Cache", width=80, command=self._show_cache_info
+        )
+        self.cache_btn.pack(side="left", padx=(20, 5), pady=10)
 
         # Spacer
         spacer = ctk.CTkLabel(self.toolbar, text="")
@@ -96,10 +104,21 @@ class PhotoToolsApp(ctk.CTk):
 
     def _configure_grid(self):
         """Configure grid weights for resizable panels."""
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=0)  # Toolbar
+        self.grid_rowconfigure(1, weight=1)  # Main panels
+        self.grid_rowconfigure(2, weight=0)  # Status bar
         self.grid_columnconfigure(0, weight=1, minsize=250)  # Folder tree
         self.grid_columnconfigure(1, weight=3, minsize=500)  # Thumbnail grid
         self.grid_columnconfigure(2, weight=2, minsize=350)  # Preview pane
+
+    def _create_status_bar(self):
+        """Create the status bar at the bottom."""
+        self.status_bar = StatusBar(self)
+        self.status_bar.grid(row=2, column=0, columnspan=3, sticky="ew")
+
+    def show_toast(self, message, success=True):
+        """Show a toast notification."""
+        show_toast(self, message, success=success)
 
     def _on_sort(self):
         """Handle Sort button click."""
@@ -162,6 +181,67 @@ class PhotoToolsApp(ctk.CTk):
         """Show info dialog."""
         dialog = ctk.CTkInputDialog(text=message, title="Info")
         dialog.destroy()  # Just a simple message box equivalent
+
+    def _show_cache_info(self):
+        """Show cache information and offer to clear."""
+        from utils.thumbnail_generator import ThumbnailGenerator
+        gen = ThumbnailGenerator()
+        
+        cache_size = gen.get_cache_size()
+        cache_count = gen.get_cache_count()
+        
+        # Create a dialog
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Thumbnail Cache")
+        dialog.geometry("350x200")
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Info
+        ctk.CTkLabel(
+            dialog, text=f"Cache Size: {cache_size}",
+            font=ctk.CTkFont(size=14)
+        ).pack(pady=(30, 10))
+        
+        ctk.CTkLabel(
+            dialog, text=f"Cached Thumbnails: {cache_count}",
+            font=ctk.CTkFont(size=12)
+        ).pack(pady=5)
+        
+        # Buttons
+        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        
+        clear_btn = ctk.CTkButton(
+            btn_frame, text="Clear Cache", fg_color="red",
+            command=lambda: self._clear_cache_and_close(dialog)
+        )
+        clear_btn.pack(side="left", padx=5)
+        
+        close_btn = ctk.CTkButton(
+            btn_frame, text="Close", command=dialog.destroy
+        )
+        close_btn.pack(side="left", padx=5)
+
+    def _clear_cache_and_close(self, dialog):
+        """Clear thumbnail cache and close dialog."""
+        from utils.thumbnail_generator import ThumbnailGenerator
+        gen = ThumbnailGenerator()
+        gen.clear_cache()
+        
+        cache_size = gen.get_cache_size()
+        cache_count = gen.get_cache_count()
+        
+        # Update the cache info in the dialog
+        for widget in dialog.winfo_children():
+            if isinstance(widget, ctk.CTkLabel):
+                text = widget.cget("text")
+                if "Cache Size" in text:
+                    widget.configure(text=f"Cache Size: {cache_size}")
+                elif "Cached Thumbnails" in text:
+                    widget.configure(text=f"Cached Thumbnails: {cache_count}")
+        
+        self.show_toast("Cache cleared successfully", success=True)
 
     def _toggle_appearance(self):
         """Toggle between light and dark mode."""
