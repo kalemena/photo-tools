@@ -74,3 +74,27 @@ class ThumbnailGenerator:
         if self.CACHE_DIR.exists():
             shutil.rmtree(self.CACHE_DIR)
             self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    def get_cache_size(self) -> str:
+        """Get total cache size in human readable format."""
+        total_size = 0
+        try:
+            for f in self.CACHE_DIR.rglob("*"):
+                if f.is_file():
+                    total_size += f.stat().st_size
+        except:
+            pass
+        
+        # Format size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if total_size < 1024.0:
+                return f"{total_size:.1f} {unit}"
+            total_size /= 1024.0
+        return f"{total_size:.1f} TB"
+
+    def get_cache_count(self) -> int:
+        """Get number of cached thumbnails."""
+        try:
+            return len(list(self.CACHE_DIR.glob("*.png")))
+        except:
+            return 0
