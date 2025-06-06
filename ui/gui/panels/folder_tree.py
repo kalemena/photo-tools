@@ -48,6 +48,11 @@ class FolderTreePanel(ctk.CTkFrame):
         # Add home directory as default
         self._populate_tree(str(Path.home()))
 
+    def load_folder(self, folder_path):
+        """Load a specific folder path (used for restoring last session)."""
+        if folder_path and Path(folder_path).exists() and Path(folder_path).is_dir():
+            self._populate_tree(folder_path)
+
     def _browse_folder(self):
         """Open folder browser dialog."""
         from tkinter import filedialog
