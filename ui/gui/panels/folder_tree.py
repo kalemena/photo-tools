@@ -52,6 +52,9 @@ class FolderTreePanel(ctk.CTkFrame):
         """Load a specific folder path (used for restoring last session)."""
         if folder_path and Path(folder_path).exists() and Path(folder_path).is_dir():
             self._populate_tree(folder_path)
+            # Also notify thumbnail panel to load photos
+            if hasattr(self.master_app, 'thumbnail_panel'):
+                self.master_app.thumbnail_panel.load_folder(folder_path)
 
     def _browse_folder(self):
         """Open folder browser dialog."""
