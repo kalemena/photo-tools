@@ -62,7 +62,7 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=(5, 10))
 
-        self.grid_columns = 3
+        self.grid_columns = 5  # Default to 5 columns for better space usage
 
         # Placeholder message
         self.placeholder = ctk.CTkLabel(
@@ -73,16 +73,31 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         )
         self.placeholder.pack(expand=True, pady=100)
 
-        # Bind resize event
+        # Bind resize event after a delay to avoid early resize events
+        self.after(1000, self._bind_resize)
+        self.last_width = 0
+
+    def _bind_resize(self):
+        """Bind resize event after initial load is complete."""
         self.bind("<Configure>", self._on_resize)
 
     def _on_resize(self, event):
         """Handle panel resize to adjust grid columns."""
         width = event.width
-        new_cols = max(2, min(6, width // 160))
+        
+        # Don't rebuild during loading
+        if self.loading_active:
+            return
+        
+        # Only rebuild if width changed significantly
+        if abs(width - self.last_width) < 80:
+            return
+            
+        self.last_width = width
+        new_cols = max(3, min(6, width // 160))
         if new_cols != self.grid_columns:
             self.grid_columns = new_cols
-            if self.photo_paths and not self.loading_active:
+            if self.photo_paths:
                 self._rebuild_grid()
 
     def load_folder(self, folder_path):
@@ -133,9 +148,8 @@ class ThumbnailGridPanel(ctk.CTkFrame):
             self.grid_frame = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
             self.grid_frame.pack(fill="both", expand=True)
 
-            # Start batch loading
-            self.loading_active = True
-            self._load_batch()
+            # Start batch loading after a short delay to let panel size stabilize
+            self.after(100, self._start_loading)
 
         except PermissionError:
             error_label = ctk.CTkLabel(
@@ -144,6 +158,20 @@ class ThumbnailGridPanel(ctk.CTkFrame):
             error_label.pack(pady=10)
             self.count_label.configure(text="Error")
 
+    def _start_loading(self):
+        """Start loading after panel size has stabilized."""
+        # Calculate columns based on actual current width
+        current_width = self.winfo_width()
+        if current_width > 200:
+            self.grid_columns = max(4, min(6, current_width // 160))
+            self.last_width = current_width
+        else:
+            # Fallback to reasonable default if width not available
+            self.grid_columns = 5
+        
+        self.loading_active = True
+        self._load_batch()
+
     def _load_batch(self):
         """Load a batch of thumbnails (called via after() to keep UI responsive)."""
         if not self.loading_active:
@@ -151,6 +179,10 @@ class ThumbnailGridPanel(ctk.CTkFrame):
 
         batch_size = 30  # Load 30 thumbnails per batch
         end = min(self.loading_index + batch_size, len(self.photo_paths))
+
+        # Configure ALL grid columns upfront
+        for c in range(self.grid_columns):
+            self.grid_frame.grid_columnconfigure(c, weight=1)
 
         for i in range(self.loading_index, end):
             if not self.loading_active:
@@ -204,10 +236,6 @@ class ThumbnailGridPanel(ctk.CTkFrame):
                     self._add_text_thumbnail_to_frame(thumb_frame, photo_path)
             else:
                 self._add_text_thumbnail_to_frame(thumb_frame, photo_path)
-
-            # Configure grid weights
-            for c in range(self.grid_columns):
-                self.grid_frame.grid_columnconfigure(c, weight=1)
 
         self.loading_index = end
 
