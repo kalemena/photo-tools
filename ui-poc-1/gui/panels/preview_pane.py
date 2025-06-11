@@ -19,6 +19,7 @@ except ImportError:
 from core.exif_handler import EXIFHandler
 
 
+
 class PreviewPanePanel(ctk.CTkFrame):
     """Right panel containing the photo preview and metadata."""
 

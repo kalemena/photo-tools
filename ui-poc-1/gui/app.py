@@ -15,6 +15,7 @@ from gui.dialogs.move_dialog import MoveDialog
 from gui.dialogs.deduplication_dialog import DeduplicationDialog
 from gui.dialogs.metadata_filter_dialog import MetadataFilterDialog
 from gui.widgets.status_bar import StatusBar, show_toast
+from gui.widgets.panel_divider import PanelDivider
 from core.settings import get_settings
 
 
@@ -99,7 +100,7 @@ class PhotoToolsApp(ctk.CTk):
     def _create_toolbar(self):
         """Create the top toolbar with action buttons."""
         self.toolbar = ctk.CTkFrame(self, height=50, corner_radius=0)
-        self.toolbar.grid(row=0, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+        self.toolbar.grid(row=0, column=0, columnspan=5, sticky="ew", padx=0, pady=0)
 
         # Toolbar buttons
         btn_sort = ctk.CTkButton(
@@ -149,36 +150,46 @@ class PhotoToolsApp(ctk.CTk):
             self.appearance_switch.select()
 
     def _create_panels(self):
-        """Create the three main panels."""
+        """Create the three main panels with draggable dividers."""
         # Left panel - Folder Tree
         self.folder_panel = FolderTreePanel(self)
-        self.folder_panel.grid(row=1, column=0, sticky="nsew", padx=(5, 2), pady=5)
+        self.folder_panel.grid(row=1, column=0, sticky="nsew", padx=(5, 0), pady=5)
+
+        # Divider 1 (between folder tree and thumbnail grid)
+        self.divider1 = PanelDivider(self, left_col=0, right_col=2)
+        self.divider1.grid(row=1, column=1, sticky="ns", pady=5)
 
         # Center panel - Thumbnail Grid
         self.thumbnail_panel = ThumbnailGridPanel(self)
-        self.thumbnail_panel.grid(row=1, column=1, sticky="nsew", padx=2, pady=5)
+        self.thumbnail_panel.grid(row=1, column=2, sticky="nsew", padx=0, pady=5)
+
+        # Divider 2 (between thumbnail grid and preview pane)
+        self.divider2 = PanelDivider(self, left_col=2, right_col=4)
+        self.divider2.grid(row=1, column=3, sticky="ns", pady=5)
 
         # Right panel - Preview Pane
         self.preview_panel = PreviewPanePanel(self)
-        self.preview_panel.grid(row=1, column=2, sticky="nsew", padx=(2, 5), pady=5)
+        self.preview_panel.grid(row=1, column=4, sticky="nsew", padx=(0, 5), pady=5)
 
         # Cross-reference panels for communication
         self.thumbnail_panel.master_app = self
         self.preview_panel.master_app = self
 
     def _configure_grid(self):
-        """Configure grid weights for resizable panels."""
+        """Configure grid weights for resizable panels with dividers."""
         self.grid_rowconfigure(0, weight=0)  # Toolbar
         self.grid_rowconfigure(1, weight=1)  # Main panels
         self.grid_rowconfigure(2, weight=0)  # Status bar
-        self.grid_columnconfigure(0, weight=1, minsize=250)  # Folder tree
-        self.grid_columnconfigure(1, weight=3, minsize=500)  # Thumbnail grid
-        self.grid_columnconfigure(2, weight=2, minsize=350)  # Preview pane
+        self.grid_columnconfigure(0, weight=1, minsize=200)  # Folder tree
+        self.grid_columnconfigure(1, weight=0, minsize=6)    # Divider 1
+        self.grid_columnconfigure(2, weight=3, minsize=400)  # Thumbnail grid
+        self.grid_columnconfigure(3, weight=0, minsize=6)    # Divider 2
+        self.grid_columnconfigure(4, weight=2, minsize=300)  # Preview pane
 
     def _create_status_bar(self):
         """Create the status bar at the bottom."""
         self.status_bar = StatusBar(self)
-        self.status_bar.grid(row=2, column=0, columnspan=3, sticky="ew")
+        self.status_bar.grid(row=2, column=0, columnspan=5, sticky="ew")
 
     def show_toast(self, message, success=True):
         """Show a toast notification."""
