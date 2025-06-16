@@ -71,10 +71,12 @@ class PhotoToolsApp(ctk.CTk):
 
     def _on_close(self):
         """Save settings before closing."""
-        # Save window position and size
-        self.settings.set("window_geometry", self.geometry())
+        # Save window size (width x height only, no position)
+        w = self.winfo_width()
+        h = self.winfo_height()
+        self.settings.set("window_geometry", f"{w}x{h}")
         
-        # Get current window position
+        # Save window position separately
         x = self.winfo_x()
         y = self.winfo_y()
         self.settings.set("window_x", x)
