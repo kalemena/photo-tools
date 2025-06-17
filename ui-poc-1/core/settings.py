@@ -15,8 +15,6 @@ class Settings:
     DEFAULT_SETTINGS = {
         "appearance_mode": "system",  # "system", "dark", "light"
         "window_geometry": "1400x900",
-        "window_x": None,
-        "window_y": None,
         "last_folder": "",
         "last_folders": [],  # Recent folders
     }

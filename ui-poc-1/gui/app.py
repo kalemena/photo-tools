@@ -33,21 +33,16 @@ class PhotoToolsApp(ctk.CTk):
         super().__init__()
 
         self.title("Photo Tools GUI")
-        
-        # Apply saved window geometry
-        geometry = self.settings.get("window_geometry", "1400x900")
-        x = self.settings.get("window_x")
-        y = self.settings.get("window_y")
-        
-        if x is not None and y is not None:
-            self.geometry(f"{geometry}+{x}+{y}")
-        else:
-            self.geometry(geometry)
-        
+
         self.minsize(1000, 700)
-        
+
         # Bind close event to save settings
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # Schedule geometry restore after window is mapped
+        # Required on macOS: setting position before the window is mapped
+        # is ignored by the window manager, especially on non-primary displays
+        self.after_idle(self._restore_geometry)
 
         self._create_toolbar()
         self._create_panels()
@@ -69,18 +64,16 @@ class PhotoToolsApp(ctk.CTk):
             if ctk.get_appearance_mode() == "Dark":
                 self.appearance_switch.select()
 
+    def _restore_geometry(self):
+        """Restore window geometry after the window is mapped."""
+        geometry = self.settings.get("window_geometry", "1400x900")
+        self.geometry(geometry)
+
     def _on_close(self):
         """Save settings before closing."""
-        # Save window size (width x height only, no position)
-        w = self.winfo_width()
-        h = self.winfo_height()
-        self.settings.set("window_geometry", f"{w}x{h}")
-        
-        # Save window position separately
-        x = self.winfo_x()
-        y = self.winfo_y()
-        self.settings.set("window_x", x)
-        self.settings.set("window_y", y)
+        # Force update so the window manager reports the current position
+        self.update_idletasks()
+        self.settings.set("window_geometry", self.geometry())
         
         # Save current folder
         if hasattr(self, 'thumbnail_panel') and self.thumbnail_panel.current_folder:
