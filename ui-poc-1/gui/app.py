@@ -236,8 +236,8 @@ class PhotoToolsApp(ctk.CTk):
 
     def _on_filter(self):
         """Handle Filter button click."""
-        if hasattr(self.thumbnail_panel, 'photo_paths') and self.thumbnail_panel.photo_paths:
-            dialog = MetadataFilterDialog(self, self.thumbnail_panel.photo_paths)
+        if hasattr(self.thumbnail_panel, 'all_photo_paths') and self.thumbnail_panel.all_photo_paths:
+            dialog = MetadataFilterDialog(self, self.thumbnail_panel.all_photo_paths)
             dialog.focus()
         else:
             self._show_info("No photos to filter. Please select a folder first.")

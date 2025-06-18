@@ -325,15 +325,23 @@ class ThumbnailGridPanel(ctk.CTkFrame):
         
         self.count_label.configure(text=f"{len(self.photo_paths)} photos")
         
-        if self.photo_paths:
-            self.loading_active = False
-            self.loading_index = 0
-            self.thumbnail_frames.clear()
-            self.thumbnail_images.clear()
-            
-            for widget in self.scroll_frame.winfo_children():
-                widget.destroy()
-            
+        self.loading_active = False
+        self.loading_index = 0
+        self.thumbnail_frames.clear()
+        self.thumbnail_images.clear()
+        
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+        
+        if not self.photo_paths:
+            self.placeholder = ctk.CTkLabel(
+                self.scroll_frame,
+                text="No photos match the current filter",
+                font=ctk.CTkFont(size=14),
+                text_color=("gray50", "gray70"),
+            )
+            self.placeholder.pack(expand=True, pady=100)
+        else:
             self.grid_frame = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
             self.grid_frame.pack(fill="both", expand=True)
             
