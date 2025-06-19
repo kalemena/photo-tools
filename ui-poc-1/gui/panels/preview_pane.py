@@ -32,6 +32,7 @@ class PreviewPanePanel(ctk.CTkFrame):
         self.preview_image = None  # CTkImage reference
         self.original_image = None  # Keep original PIL image for resizing
         self.exif_handler = EXIFHandler()
+        self._resize_after_id = None
         self._create_widgets()
 
     def _create_widgets(self):
@@ -46,8 +47,9 @@ class PreviewPanePanel(ctk.CTkFrame):
         self.preview_scroll = ctk.CTkScrollableFrame(self, fg_color=("gray90", "gray20"), label_text="")
         self.preview_scroll.pack(fill="both", expand=True, padx=10, pady=(5, 10))
 
-        # Bind to scroll frame resize
-        self.preview_scroll.bind("<Configure>", self._on_scroll_resize)
+        # Bind to resize events (both pane and scroll frame)
+        self.bind("<Configure>", self._on_resize)
+        self.preview_scroll.bind("<Configure>", self._on_resize)
 
         # Image label (inside scrollable frame)
         self.preview_label = ctk.CTkLabel(
@@ -186,14 +188,22 @@ class PreviewPanePanel(ctk.CTkFrame):
 
     def _resize_and_display(self):
         """Resize image to fit preview area and display it."""
+        self._resize_after_id = None
         if self.original_image is None:
             return
 
-        # Calculate resize dimensions based on original image aspect ratio
-        # Use a reasonable default size that fits well in the panel
-        # The CTkImage will handle DPI scaling automatically
-        max_width = 500
-        max_height = 400
+        # Use the preview pane's own width and scroll frame's height
+        # The scroll frame expands to fill all available space in this panel
+        pane_width = self.winfo_width()
+        scroll_height = self.preview_scroll.winfo_height()
+
+        # Guard against uninitialized dimensions
+        if pane_width <= 1 or scroll_height <= 1:
+            return
+
+        # Account for internal padding within the scroll frame
+        max_width = pane_width - 30  # panel corner_radius + scroll internal padding
+        max_height = scroll_height - 10  # minimal internal padding
 
         img = self.original_image.copy()
         img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
@@ -209,10 +219,14 @@ class PreviewPanePanel(ctk.CTkFrame):
         # Update label
         self.preview_label.configure(image=self.preview_image, text="")
 
-    def _on_scroll_resize(self, event):
-        """Handle scroll frame resize to adapt preview image."""
-        if self.original_image is not None:
-            self._resize_and_display()
+    def _on_resize(self, event):
+        """Handle resize to adapt preview image."""
+        if self.original_image is None:
+            return
+        # Debounce resize events during drag
+        if self._resize_after_id:
+            self.after_cancel(self._resize_after_id)
+        self._resize_after_id = self.after(150, self._resize_and_display)
 
     def _update_nav_buttons(self):
         """Update navigation button states."""
