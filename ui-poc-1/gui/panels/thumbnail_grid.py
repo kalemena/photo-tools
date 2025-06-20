@@ -278,10 +278,13 @@ class ThumbnailGridPanel(ctk.CTkFrame):
 
     def _on_thumbnail_click(self, photo_path, frame):
         """Handle thumbnail selection."""
-        if photo_path in self.selected_photos:
+        if photo_path in self.selected_photos and len(self.selected_photos) == 1:
             self.selected_photos.remove(photo_path)
             frame.configure(border_color=("gray80", "gray30"))
         else:
+            self.selected_photos.clear()
+            for path, f in self.thumbnail_frames.items():
+                f.configure(border_color=("gray80", "gray30"))
             self.selected_photos.add(photo_path)
             frame.configure(border_color=("blue", "blue"))
 
